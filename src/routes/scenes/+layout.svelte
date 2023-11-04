@@ -10,10 +10,6 @@
 			page {
 				page {
 					path
-					data {
-						key
-						value
-					}
 				}
 			}
 		}

@@ -1,27 +1,27 @@
 <script lang="ts">
+	import PlayerInfo from './../../../lib/components/PlayerInfo.svelte';
+	import MapCard from '$lib/components/MapCard.svelte';
+	import StreamView from '$lib/components/StreamView.svelte';
 	import { gqlClient } from '$lib/gql';
-	import type { Team } from '$lib/types';
+	import type { Match, Team } from '$lib/types';
 	import { gql } from 'graphql-request';
-	type Data = {
-		state: {
-			matches: [
-				{
-					id: string;
-					players: {
-						id: string;
-						name: string;
-						team: {
-							id: string;
-							name: string;
-						};
-					}[];
-					currentMap: { id: string; name: string; difficulty: number; modifiers: unknown[] };
-					scores: { ownerId: string; score: number }[];
-				}
-			];
-		};
-	};
+	import { onDestroy, onMount } from 'svelte';
+	import { TeamLookup } from '$lib/teams';
+
 	const query = gql`
+		query {
+			page {
+				page {
+					data {
+						key
+						value
+					}
+				}
+			}
+		}
+	`;
+
+	const getMatchQuery = gql`
 		query {
 			state {
 				matches {
@@ -29,12 +29,35 @@
 					players {
 						id
 						name
+						userId
+						playState
+						downloadState
 						team {
 							id
 							name
 						}
+						modList
+						streamDelayMs
+						streamSyncStartMs
 					}
-
+					teams {
+						id
+						name
+					}
+					coordinators {
+						id
+						name
+						userId
+						playState
+						downloadState
+						team {
+							id
+							name
+						}
+						modList
+						streamDelayMs
+						streamSyncStartMs
+					}
 					currentMap {
 						id
 						name
@@ -44,108 +67,110 @@
 					scores {
 						ownerId
 						score
+						combo
+						accuracy
+						notesMissed
+						badCuts
+						bombHits
+						wallHits
 					}
 				}
 			}
 		}
 	`;
 
-	let teams: Team[] = [
-		{
-			id: '1',
-			name: 'TeamName1',
-			players: [
-				{
-					name: 'Checksum',
-					id: 'chksmd',
-					score: 'x999 99.99%',
-					streamUrl: ''
-				},
-				{
-					name: 'Sargon64',
-					id: 'sargon64',
-					score: 'x999 99.99%',
-					streamUrl: ''
-				},
-				{
-					name: 'BlackDemonFire',
-					id: 'blackdemonfire4',
-					score: 'x999 99.99%',
-					streamUrl: ''
-				}
-			]
-		},
-		{
-			id: '2',
-			name: 'TeamName2',
-			players: [
-				{
-					name: 'Checksum',
-					id: 'chksmd',
-					score: 'x999 99.99%',
-					streamUrl: ''
-				},
-				{
-					id: 'sargon64',
-					name: 'Sargon64',
-					score: 'x999 99.99%',
-					streamUrl: ''
-				},
-				{
-					id: 'blackdemonfire4',
-					name: 'BlackDemonFire',
-					score: 'x999 99.99%',
-					streamUrl: ''
-				}
-			]
-		}
-	];
-	gqlClient.request<Data>(query).then((data: Data) => {
-		const newTeams: Team[] = [];
-		data.state.matches[0].players.forEach((player) => {
-			if (!newTeams.some((t) => t.id === player.team.id))
-				newTeams.push({
-					...player.team,
-					players: []
-				});
+	let matchGuid: string;
+	let match: Match;
+	gqlClient.request(query).then((data: any) => {
+		matchGuid =
+			(<{ key: string; value: string }[]>data.page.page.data).find((d) => d.key == 'matchId')
+				?.value ?? '';
+
+		gqlClient.request(getMatchQuery).then((data: any) => {
+			match = data.state.matches.find((m: Match) => m.id == matchGuid);
 		});
-		data.state.matches[0].players.forEach((player) =>
-			newTeams
-				.find((team) => team.id === player.team.id)
-				?.players.push({
-					name: player.name,
-					id: player.id,
-					streamUrl: '',
-					score:
-						data.state.matches[0].scores
-							.find((score) => score.ownerId === player.id)
-							?.score.toString() ?? ''
-				})
-		);
-		teams = newTeams;
+	});
+
+	let interval: number;
+	onMount(() => {
+		interval = setInterval(() => {
+			gqlClient.request(getMatchQuery).then((data: any) => {
+				match = data.state.matches.find((m: Match) => m.id == matchGuid);
+				// team score
+				match.teams.map((team: Team) => {
+					team.avgScore = match.scores
+						.filter((s) => match.players.find((p) => p.id == s.ownerId)?.team.id == team.id)
+						.reduce((a, b) => a + b.score, 0);
+
+					team.avgAccuracy =
+						match.scores
+							.filter((s) => match.players.find((p) => p.id == s.ownerId)?.team.id == team.id)
+							.reduce((a, b) => a + b.accuracy, 0) /
+						match.players.filter((p) => p.team.id == team.id).length;
+				});
+			});
+		}, 1000);
+	});
+
+	$: {
+		if (match) {
+			console.log(match);
+		}
+	}
+
+	onDestroy(() => {
+		clearInterval(interval);
 	});
 </script>
 
-<div class="h-screen container mx-auto my-2 flex flex-col">
-	{#each teams as team}
-		<h3 class="text-2xl">{team.name}</h3>
-		<div class="flex flex-row h-full">
-			{#each team.players as player}
-				<div class="w-full h-full m-2">
-					<div class="flex flex-row">
-						<img
-							src="https://files.blackdemon.tech/enby_sword.png"
-							alt={`${player.name}'s profile pic`}
-							class="w-10 h-10"
-							style="image-rendering: pixelated;"
-						/>
-						<h4 class="text-xl p-1">{player.name}</h4>
-					</div>
-					<div class="bg-fuchsia-700 my-1 h-4/6">
-						<p class="mt-auto ml-auto">{player.score}</p>
-					</div>
+<div class="h-screen w-screen flex flex-col font-bold text-[#ffffff] font-['Arial'] text-2xl m-[-2] items-center justify-center bg-[url('https://oh-no.icu/Vn12yXUMQ3.png?key=dIiF8yRZ0RjidY')]">
+	{#if match}
+		<div class="flex flex-row gap-5 items-center">
+			<div class="flex flex-row gap-2 pt-2">
+				<!-- svelte-ignore a11y-missing-attribute -->
+				<img class="rounded w-10 h-10" src="{TeamLookup.find((e) => e.name === match.teams[0].name)?.image}">
+				<h3 class="text-2x pt-4">{match.teams[0].name}</h3>
+				<div class="grid items-center justify-center ps-10">
+					<p class="text-3xl">{((match.teams[0].avgAccuracy ?? 1) * 100).toFixed(2)}%</p>
+					<p class="text-xl">{match.teams[0].avgScore ?? 0} </p>
 				</div>
-			{/each}
+			</div>
+			<!-- svelte-ignore a11y-missing-attribute -->
+			<img class="w-10 h-10" src="https://oh-no.icu/VbfnMqxs6C.png?key=VSmlX5fYVL7HUL">
+			<div class="flex flex-row gap-2 pt-2">
+				<div class="grid items-center justify-center pe-10">
+					<p class="text-3xl">{((match.teams[1].avgAccuracy ?? 1) * 100).toFixed(2)}%</p>
+					<p class="text-xl">{match.teams[1].avgScore ?? 0} </p>
+				</div>
+				<h3 class="text-2x pt-4">{match.teams[1].name}</h3>
+				<!-- svelte-ignore a11y-missing-attribute -->
+				<img class="rounded w-10 h-10" src="{TeamLookup.find((e) => e.name === match.teams[1].name)?.image}">
+			</div>
 		</div>
-	{/each}
+		{#each match.teams as team}
+			<div class="flex flex-row h-full w-full" style="">
+				{#each match.players.filter((p) => p.team.id === team.id) as player}
+					<div class="w-full h-full m-2">
+						<PlayerInfo {player} />
+						<div class="w-[50%] h-[80%] pb-10">
+							<StreamView name={player.name} scale={0.41} style="" />
+							<div class="grid grid-flow-col">
+								<p class="mt-auto ml-auto">
+									{match.scores.find((s) => s.ownerId === player.id)?.score ?? 0}
+								</p>
+								<p class="mt-auto ml-auto">
+									{(
+										(match.scores.find((s) => s.ownerId === player.id)?.accuracy ?? 0) * 100
+									).toFixed(2)}%
+								</p>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/each}
+		<div class="mb-[26px]">
+			<MapCard map={match.currentMap} />
+		</div>
+	{/if}
 </div>
