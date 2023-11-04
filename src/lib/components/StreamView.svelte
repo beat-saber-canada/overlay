@@ -11,7 +11,7 @@
 <iframe
 	id="{name}-stream"
 	title="{name}'s stream"
-	src="http://localhost:8889/bsc/test"
+	src="http://207.171.252.31:8889/bsc/test"
 	{height}
 	{width}
 	frameborder="0"
