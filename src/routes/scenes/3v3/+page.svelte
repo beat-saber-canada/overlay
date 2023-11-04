@@ -126,10 +126,10 @@
 <div class="h-screen w-screen flex flex-col font-bold text-[#ffffff] font-['Arial'] text-2xl m-[-2] items-center justify-center bg-[url('https://oh-no.icu/Vn12yXUMQ3.png?key=dIiF8yRZ0RjidY')]">
 	{#if match}
 		<div class="flex flex-row gap-5 items-center">
-			<div class="flex flex-row gap-2 pt-2">
+			<div class="flex flex-row gap-2 mt-2">
 				<!-- svelte-ignore a11y-missing-attribute -->
 				<img class="rounded w-10 h-10" src="{TeamLookup.find((e) => e.name === match.teams[0].name)?.image}">
-				<h3 class="text-2x pt-4">{match.teams[0].name}</h3>
+				<h3 class="text-2x mt-4">{match.teams[0].name}</h3>
 				<div class="grid items-center justify-center ps-10">
 					<p class="text-3xl">{((match.teams[0].avgAccuracy ?? 1) * 100).toFixed(2)}%</p>
 					<p class="text-xl">{match.teams[0].avgScore ?? 0} </p>
@@ -137,12 +137,12 @@
 			</div>
 			<!-- svelte-ignore a11y-missing-attribute -->
 			<img class="w-10 h-10" src="https://oh-no.icu/VbfnMqxs6C.png?key=VSmlX5fYVL7HUL">
-			<div class="flex flex-row gap-2 pt-2">
-				<div class="grid items-center justify-center pe-10">
+			<div class="flex flex-row gap-2 mt-2">
+				<div class="grid items-center justify-center me-10">
 					<p class="text-3xl">{((match.teams[1].avgAccuracy ?? 1) * 100).toFixed(2)}%</p>
 					<p class="text-xl">{match.teams[1].avgScore ?? 0} </p>
 				</div>
-				<h3 class="text-2x pt-4">{match.teams[1].name}</h3>
+				<h3 class="text-2x mt-4">{match.teams[1].name}</h3>
 				<!-- svelte-ignore a11y-missing-attribute -->
 				<img class="rounded w-10 h-10" src="{TeamLookup.find((e) => e.name === match.teams[1].name)?.image}">
 			</div>
