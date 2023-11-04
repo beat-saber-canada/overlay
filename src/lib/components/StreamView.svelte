@@ -11,7 +11,7 @@
 <iframe
 	id="{name}-stream"
 	title="{name}'s stream"
-	src="http://207.171.252.31:8889/bsc/test"
+	src="http://207.171.252.31:8889/bsc/{name.replaceAll(" ", "-")}}"
 	{height}
 	{width}
 	frameborder="0"
